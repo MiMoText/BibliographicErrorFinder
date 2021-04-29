@@ -48,26 +48,25 @@ def check_directory(directory='entry'):
                 w.writerow([entry['id'], entry['author'], entry['title']])
 
     with open(directory + '_Fehlende_Titel.tsv', 'w') as f:
-        f.write('ID\n')
+        w = csv.writer(f, delimiter='\t')
+        w.writerow(['ID', 'Autor'])
         for file_missing_titles in missing_titles:
-            for id in file_missing_titles:
-                f.write(id)
-                f.write('\n')
-                f.flush()
+            for entry in file_missing_titles:
+                w.writerow([entry['id'], entry['author']])
 
     with open(directory + '_Falscher_Autor.tsv', 'w') as f:
         w = csv.writer(f, delimiter='\t')
-        w.writerow(['ID', 'Autor', 'Vorheriger Autor'])
+        w.writerow(['ID', 'Autor', 'Vorheriger Autor ID', 'Vorheriger Autor'])
         for file_author_wrong in author_wrong:
             for entry in file_author_wrong:
-                w.writerow([entry['id'], entry['author'], entry['previous_author']])
+                w.writerow([entry['id'], entry['author'], entry['previous_author']['id'], entry['previous_author']['author']])
 
 
 def check_xml_file(directory, filename):
     entries = []
     missing_titles = []
     author_wrong = []
-    previous_author = None
+    previous_author = {}
     try:
         tree = ET.parse(os.path.join(path_to_directory, directory, filename))
     except ET.ParseError:
@@ -80,14 +79,15 @@ def check_xml_file(directory, filename):
         title = extract(entry, dictionary[directory]['title'])
         entries.append({'id': id, 'author': author, 'title': title})
         if title is None:
-            missing_titles.append(id)
+            missing_titles.append({'id': id, 'author': author})
         if not author is None:
-            if not previous_author is None:
-                if previous_author > author:
-                    author_wrong.append({'id': id, 'author': author, 'previous_author': previous_author})
-            previous_author = author
-        elif not previous_author is None:
-            author_wrong.append({'id': id, 'author': None, 'previous_author': previous_author})
+            if previous_author:
+                if previous_author['author'] > author:
+                    author_wrong.append({'id': id, 'author': author, 'previous_author': previous_author.copy()})
+            previous_author['id'] = id
+            previous_author['author'] = author
+        elif previous_author:
+            author_wrong.append({'id': id, 'author': None, 'previous_author': previous_author.copy()})
 
     return entries, missing_titles, author_wrong, None
 
