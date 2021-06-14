@@ -1,5 +1,6 @@
 import os
 import csv
+import re
 import xml.etree.ElementTree as ET
 
 # Folgende zwei Variablen nach Wunsch anpassen
@@ -62,6 +63,25 @@ def check_directory(directory='entry'):
                 w.writerow([entry['id'], entry['author'], entry['previous_author']['id'], entry['previous_author']['author']])
 
 
+def use_regex(str):
+    p_whitespace = re.compile('\s')
+    p_c_accent_uppercase = re.compile('Ç')
+    p_c_accent_lowercase = re.compile('ç')
+    p_e_accent_uppercase = re.compile('[ÉÈÊË]')
+    p_e_accent_lowercase = re.compile('[éèêë]')
+    p_i_accent_uppercase = re.compile('[ÎÏÍÌ]')
+    p_i_accent_lowercase = re.compile('[îïíì]')
+
+    s = p_whitespace.sub('', str)
+    s = p_c_accent_uppercase.sub('C', s)
+    s = p_c_accent_lowercase.sub('c', s)
+    s = p_e_accent_uppercase.sub('E', s)
+    s = p_e_accent_lowercase.sub('e', s)
+    s = p_i_accent_uppercase.sub('I', s)
+    s = p_i_accent_lowercase.sub('i', s)
+    return s
+
+
 def check_xml_file(directory, filename):
     entries = []
     missing_titles = []
@@ -80,13 +100,17 @@ def check_xml_file(directory, filename):
         entries.append({'id': id, 'author': author, 'title': title})
         if title is None:
             missing_titles.append({'id': id, 'author': author})
-        if not author is None:
-            if previous_author:
-                if previous_author['author'] > author:
+        if author is not None:
+            if previous_author and previous_author != '?':
+                previous_to_compare = use_regex(previous_author['author'])
+                author_to_compare = use_regex(author)
+                if previous_to_compare > author_to_compare and \
+                        not previous_to_compare.startswith(author_to_compare) and \
+                        not author_to_compare.startswith(previous_to_compare):
                     author_wrong.append({'id': id, 'author': author, 'previous_author': previous_author.copy()})
             previous_author['id'] = id
             previous_author['author'] = author
-        elif previous_author:
+        elif previous_author and previous_author != '?':
             author_wrong.append({'id': id, 'author': None, 'previous_author': previous_author.copy()})
 
     return entries, missing_titles, author_wrong, None
