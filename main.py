@@ -72,7 +72,8 @@ def use_regex(str):
     p_i_accent_uppercase = re.compile('[ÎÏÍÌ]')
     p_i_accent_lowercase = re.compile('[îïíì]')
 
-    s = p_whitespace.sub('', str)
+    s = str
+    s = p_whitespace.sub('', s)
     s = p_c_accent_uppercase.sub('C', s)
     s = p_c_accent_lowercase.sub('c', s)
     s = p_e_accent_uppercase.sub('E', s)
